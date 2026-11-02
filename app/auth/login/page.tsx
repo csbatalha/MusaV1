@@ -5,85 +5,80 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function AuthPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      if (isLogin) {
-        // Fluxo de Login
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-      } else {
-        // Fluxo de Cadastro
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        alert('Conta criada com sucesso! Verifique o seu e-mail se necessário ou faça login.');
-      }
-
-      // Redireciona para a home após o sucesso
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       router.push('/');
       router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro na autenticação.');
+      setError(err.message || 'Erro ao entrar na conta.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/` },
+      });
+    } catch (err: any) {
+      setError(err.message || 'Erro ao conectar com o Google.');
+    }
+  };
+
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-6 relative">
-      {/* Botão para voltar à home */}
-      <div className="absolute top-6 left-6">
-        <Link href="/" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors font-sans">
-          ← Voltar para o início
-        </Link>
-      </div>
-
       <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-8 shadow-2xl backdrop-blur-md">
-        {/* Cabeçalho */}
         <div className="text-center space-y-2 mb-8">
           <h1 className="font-serif text-4xl font-bold tracking-wide flex items-center justify-center gap-2">
             Musa
-            <span 
-              style={{
-                background: 'linear-gradient(to right, #8B5CF6, #F43F5E)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              ✦
-            </span>
+            <span style={{ background: 'linear-gradient(to right, #8B5CF6, #F43F5E)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>✦</span>
           </h1>
-          <p className="font-sans text-zinc-400 text-sm">
-            {isLogin ? 'Entre na sua conta para continuar' : 'Crie a sua conta para registar filmes'}
-          </p>
+          <p className="font-sans text-zinc-400 text-sm">Entre na sua conta para continuar</p>
         </div>
 
-        {/* Mensagem de Erro */}
         {error && (
           <div className="bg-red-950/50 border border-red-800/60 text-red-300 text-xs p-3 rounded-xl mb-6 text-center font-sans">
             {error}
           </div>
         )}
 
-        {/* Formulário */}
-        <form onSubmit={handleAuth} className="space-y-4 font-sans">
+        {/* Botão com o Ícone do Google */}
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full mb-6 flex items-center justify-center gap-3 bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-200 font-medium py-3 rounded-xl text-sm transition-colors shadow-sm"
+        >
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+            <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.4l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+            <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+            <path fill="#FBBC05" d="M5.6 14.7c-.2-.7-.4-1.5-.4-2.7s.2-2 .4-2.7L1.9 6.4C.7 8.8 0 10.3 0 12s.7 3.2 1.9 5.6l3.7-2.9z"/>
+            <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.3L1.9 15.9C3.7 19.7 7.5 23 12 23z"/>
+          </svg>
+          Continuar com o Google
+        </button>
+
+        <div className="flex items-center my-6 text-zinc-700">
+          <div className="flex-1 border-t border-zinc-800"></div>
+          <span className="px-3 text-xs uppercase tracking-wider text-zinc-500 font-sans">ou com e-mail</span>
+          <div className="flex-1 border-t border-zinc-800"></div>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4 font-sans">
           <div>
             <label className="block text-xs font-medium text-zinc-400 mb-1.5">E-mail</label>
             <input 
@@ -113,19 +108,15 @@ export default function AuthPage() {
             disabled={loading}
             className="w-full mt-2 bg-gradient-to-r from-purple-600 to-rose-600 text-zinc-100 font-medium py-3 rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-purple-900/20"
           >
-            {loading ? 'A processar...' : (isLogin ? 'Entrar' : 'Criar Conta')}
+            {loading ? 'A processar...' : 'Entrar'}
           </button>
         </form>
 
-        {/* Alternador entre Login e Registo */}
         <div className="text-center mt-6 text-xs text-zinc-400 font-sans">
-          {isLogin ? 'Ainda não tem conta?' : 'Já possui uma conta?'}{' '}
-          <button 
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-purple-400 hover:underline font-medium ml-1"
-          >
-            {isLogin ? 'Criar agora' : 'Fazer login'}
-          </button>
+          Ainda não tem conta?{' '}
+          <Link href="/auth/signup" className="text-purple-400 hover:underline font-medium ml-1">
+            Criar agora
+          </Link>
         </div>
       </div>
     </main>
